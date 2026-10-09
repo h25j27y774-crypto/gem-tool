@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diablo Immortal — Legendary Gem Synergy Calculator</title>
+<style>
+  :root{
+    --bg:#0c0a10; --panel:#17131d; --panel2:#1e1826; --border:#3a2f4a;
+    --gold:#d8ac5c; --gold-bright:#f2cf8a; --red:#c0392b; --blue:#5aa9e6;
+    --green:#5cb85c; --text:#e8e2f0; --dim:#9d92ad; --purple:#8e5cd9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:24px; background:radial-gradient(ellipse at top,#211a2c 0%,#0c0a10 60%);
+    color:var(--text); font-family:'Segoe UI',Georgia,serif; min-height:100vh;
+  }
+  h1{
+    text-align:center; color:var(--gold-bright); letter-spacing:1px; margin-bottom:4px;
+    font-size:1.8em; text-shadow:0 0 12px rgba(242,207,138,0.35);
+  }
+  .subtitle{ text-align:center; color:var(--dim); font-size:0.85em; margin-bottom:20px; }
+  .wrap{ max-width:1100px; margin:0 auto; }
+  .gear-groups{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-bottom:24px; }
+  .gear-group{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px; }
+  .gear-title{ color:var(--gold); font-weight:600; font-size:0.95em; margin-bottom:8px; text-align:center; text-transform:uppercase; letter-spacing:0.5px;}
+  .slot{ background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:8px; margin-bottom:8px; }
+  .slot:last-child{ margin-bottom:0; }
+  .slot-label{ font-size:0.72em; color:var(--dim); margin-bottom:4px; }
+  select{
+    width:100%; background:#12101a; color:var(--text); border:1px solid var(--border);
+    border-radius:6px; padding:6px 6px; font-size:0.82em; margin-bottom:6px;
+  }
+  select:last-child{ margin-bottom:0; }
+  select:disabled{ opacity:0.4; }
+  .stars-1{color:#9fd6ff;} .stars-2{color:#8effa8;} .stars-5{color:#ffb347;}
+  .desc-box{
+    background:var(--panel2); border:1px solid var(--border); border-radius:6px;
+    padding:6px 8px; font-size:0.72em; color:var(--dim); margin-top:6px; min-height:14px; line-height:1.3;
+  }
+  .panel{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px 20px; margin-bottom:16px; }
+  .panel h2{ color:var(--gold-bright); font-size:1.15em; margin:0 0 12px 0; border-bottom:1px solid var(--border); padding-bottom:6px;}
+  .archetype{
+    text-align:center; font-size:1.1em; font-weight:600; color:var(--purple);
+    padding:10px; background:rgba(142,92,217,0.12); border:1px solid var(--purple); border-radius:8px; margin-bottom:16px;
+  }
+  .summary-cols{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
+  .col h3{ font-size:0.95em; margin:0 0 8px 0; }
+  .col.offense h3{ color:#e88a8a; } .col.defense h3{ color:#7ab8e8; } .col.utility h3{ color:#9fe89f; }
+  .stat-row{ display:flex; justify-content:space-between; font-size:0.85em; padding:3px 0; border-bottom:1px dashed rgba(255,255,255,0.05); }
+  .stat-row span:last-child{ font-weight:600; }
+  .empty-note{ color:var(--dim); font-size:0.82em; font-style:italic; }
+  .proc-list{ margin-top:14px; font-size:0.85em; }
+  .proc-item{ padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+  .proc-item b{ color:var(--gold); }
+  .disclaimer{ font-size:0.72em; color:var(--dim); text-align:center; margin-top:18px; line-height:1.5; }
+  .timeline-legend{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; font-size:0.72em; color:var(--dim); margin-bottom:14px; }
+  .legend-item{ display:flex; align-items:center; gap:5px; }
+  .legend-swatch{ width:22px; height:10px; border-radius:2px; display:inline-block; }
+  .legend-swatch.passive{ background:#c98fe0; }
+  .legend-swatch.cadence{ background:repeating-linear-gradient(90deg,#c98fe0 0 6px, transparent 6px 10px); }
+  .legend-swatch.chance{ background:repeating-linear-gradient(45deg, rgba(216,172,92,0.6) 0 4px, rgba(216,172,92,0.15) 4px 8px); }
+  .timeline-ruler-row{ margin:0 0 10px 0; }
+  .timeline-ruler-row .timeline-track{ height:14px; background:none; border:none; }
+  .ruler-tick{ position:absolute; top:0; font-size:0.65em; color:var(--dim); transform:translateX(-50%); }
+  .ruler-tick:first-child{ transform:translateX(0); }
+  .ruler-tick:last-child{ transform:translateX(-100%); }
+  .timeline-cat{ margin-bottom:16px; }
+  .timeline-cat-title{ font-size:0.85em; font-weight:600; margin-bottom:6px; }
+  .timeline-cat-title.offense{ color:#e88a8a; } .timeline-cat-title.defense{ color:#7ab8e8; } .timeline-cat-title.utility{ color:#9fe89f; }
+  .timeline-row{ display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+  .timeline-label{ width:170px; flex-shrink:0; text-align:right; font-size:0.75em; color:var(--text); }
+  .timeline-track{ position:relative; flex:1; height:16px; background:#0d0b12; border:1px solid var(--border); border-radius:3px; overflow:hidden; }
+  .timeline-seg{ position:absolute; top:0; bottom:0; opacity:0.9; }
+  .timeline-seg.offense{ background:#e88a8a; }
+  .timeline-seg.defense{ background:#7ab8e8; }
+  .timeline-seg.utility{ background:#9fe89f; }
+  .timeline-seg.chance{ background:repeating-linear-gradient(45deg, rgba(216,172,92,0.6) 0 4px, rgba(216,172,92,0.15) 4px 8px); opacity:1; }
+  .timeline-value{ min-width:70px; flex-shrink:0; font-size:0.72em; color:var(--gold-bright); white-space:nowrap; text-align:right; }
+  .maxlife-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:14px; padding:8px 10px; background:var(--panel2); border:1px solid var(--border); border-radius:8px; font-size:0.8em; }
+  .maxlife-row label{ color:var(--text); }
+  .maxlife-row input{ width:120px; background:#12101a; color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 6px; }
+  .maxlife-hint{ color:var(--dim); font-size:0.85em; }
+  .maxlife-abs{ color:var(--dim); font-weight:400; }
+  .reset-btn{
+    display:block; margin:0 auto 20px auto; background:var(--red); color:#fff; border:none;
+    padding:8px 18px; border-radius:6px; cursor:pointer; font-size:0.85em;
+  }
+  .reset-btn:hover{ background:#a53125; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚔ Legendary Gem Synergy Calculator ⚔</h1>
+  <div class="subtitle">Diablo Immortal — fan-made tool covering all 93 Legendary Gems (incl. the Sept 2026 "Made to Suffer" additions). Pick a gem + rank for each of your 8 gem sockets to see the combined synergy.</div>
+
+  <button class="reset-btn" onclick="resetAll()">Reset All Slots</button>
+
+  <div class="gear-groups" id="gearGroups"></div>
+
+  <div class="panel">
+    <h2>Synergy Analysis</h2>
+    <div class="maxlife-row">
+      <label for="maxLifeInput">Max Life (for Life-Scaled Damage effects like Fated Trail):</label>
+      <input type="number" id="maxLifeInput" value="550000" min="0" step="10000">
+      <span class="maxlife-hint">Default is a clan-average estimate — enter your own Max Life for an exact number.</span>
+    </div>
+    <div id="archetype" class="archetype">Equip gems to see your build archetype.</div>
+    <div class="summary-cols" id="summaryCols"></div>
+    <div class="proc-list" id="procList"></div>
+  </div>
+
+  <div class="panel">
+    <h2>60-Second Effect Timeline</h2>
+    <div class="timeline-legend">
+      <div class="legend-item"><span class="legend-swatch passive"></span> Always active (innate stat)</div>
+      <div class="legend-item"><span class="legend-swatch cadence"></span> Repeating proc window (best-case timing)</div>
+      <div class="legend-item"><span class="legend-swatch chance"></span> Trigger/RNG-gated (uptime varies)</div>
+    </div>
+    <div class="timeline-row timeline-ruler-row">
+      <div class="timeline-label"></div>
+      <div class="timeline-track" id="timelineRuler"></div>
+      <div class="timeline-value"></div>
+    </div>
+    <div id="timelineBody"></div>
+  </div>
+
+  <div class="disclaimer">
+    Community fan tool — not affiliated with Blizzard. Gem effect values are compiled from public game guides (GameStrategyHQ, Wowhead, Game8) and may lag behind the latest balance patch.
+    Rank 1–10 values are interpolated between published milestones for gems where only Rank 1 and Rank 10 data is publicly documented, so treat mid-rank numbers as close approximations. A few very recently added gems have no confirmed numeric tooltip anywhere yet and appear as proc-only entries.
+    The 60-second timeline uses a fixed illustrative cadence (not rank-adjusted) for gems with a published buff duration + cooldown, assumes the effect triggers the instant it's available (a best case), and shows chance/RNG-gated procs as a hatched "available, timing not fixed" band rather than a precise schedule.
+    The synergy summary adds percentage effects together for a quick at-a-glance total — in the actual game some bonuses combine multiplicatively rather than additively, so use this as a directional guide, not an exact damage calculator.
+  </div>
+</div>
+
+<script>
+// ---------- Stat bucket definitions ----------
+const STAT_DEFS = {
+  damagePercent:      { label: "Damage Dealt",                  group: "offense" },
+  lifeScaledDamage:    { label: "Life-Scaled Damage (% of Max Life — not summed with Damage Dealt)", group: "offense" },
+  damageToElites:      { label: "Damage to Elites/Bosses",        group: "offense" },
+  damageAmp:           { label: "Damage Amp vs. Debuffed Enemies",group: "offense" },
+  critChance:          { label: "Critical Hit Chance",            group: "offense" },
+  critDamage:          { label: "Critical Hit Damage",            group: "offense" },
+  attackSpeed:         { label: "Attack Speed",                   group: "offense" },
+  damageReduction:      { label: "Damage Reduction",              group: "defense" },
+  damageTakenIncrease:  { label: "Damage Taken (extra risk)",     group: "defense" },
+  blockChance:          { label: "Block Chance",                  group: "defense" },
+  evasion:              { label: "Evasion Rating",                group: "defense" },
+  ccDurationReduction:  { label: "CC Duration Taken Reduction",   group: "defense" },
+  critResistance:       { label: "Crit Resistance (reduced crit dmg taken)", group: "defense" },
+  controlChance:        { label: "Crowd Control Potency",         group: "utility" },
+  moveSpeed:            { label: "Movement Speed",                group: "utility" },
+  resourceEfficiency:   { label: "Resource / Cost Efficiency",    group: "utility" },
+  cooldownReduction:    { label: "Cooldown Reduction",            group: "utility" },
+  ultimateDuration:     { label: "Ultimate Duration",             group: "utility" },
+  summonDuration:       { label: "Summon Duration",               group: "utility" },
+  magicFind:            { label: "Magic Find",                    group: "utility" }
+};
+
+// ---------- Gem database ----------
+// mods: array of {key, r1, r10} — value at a given rank is linearly interpolated between r1 (rank 1) and r10 (rank 10)
+// proc: short text describing a non-numeric / proc-based effect (shown in "Notable Proc Effects", not summed)
+// Timing conventions used for the 60-second timeline feature (attached per-mod as `timing`; omitted = passive/always-on):
+//   passive  — innate/always-on stat, no trigger (default when `timing` is absent)
+//   cadence  — deterministic repeating window: active for `duration`s every `cooldown`s, illustrated as if it triggers
+//              immediately once available (best-case). Only used where a source gave BOTH numbers explicitly.
+//   chance   — trigger/RNG-gated with no confirmed fixed cadence; shown as a hatched "available, timing varies" band
+//   alternate— deterministic toggle between two categories every `period`s (currently only Power & Command)
+// `dmgType` on a damagePercent mod routes it to a specific timeline row (primary/skill/ultimate/summon); default = overall.
+const GEMS = [
+  { name:"Berserker's Eye", stars:1, mods:[
+      {key:"damagePercent", r1:5.5, r10:16},
+      {key:"damageTakenIncrease", r1:5, r10:5},
+      {key:"critChance", r1:0, r10:2}
+  ], proc:null },
+  { name:"Trickshot Gem", stars:1, mods:[
+      {key:"resourceEfficiency", r1:8, r10:24},
+      {key:"damageReduction", r1:0, r10:2}
+  ], proc:"Reduces Channeled skill energy cost; small damage reduction while channeling at high rank." },
+  { name:"Seled's Weakening", stars:1, mods:[
+      {key:"damagePercent", r1:6, r10:18, timing:{mode:"chance", note:"Requires killing an Elite/Boss first"}},
+      {key:"damageToElites", r1:0, r10:4}
+  ], proc:"Temporary damage buff after killing an Elite/Boss." },
+  { name:"Chained Death", stars:1, mods:[
+      {key:"damagePercent", r1:4.5, r10:15.4}
+  ], proc:"Damage scales up with the number of enemies hit simultaneously (max shown)." },
+  { name:"Everlasting Torment", stars:1, mods:[
+      {key:"damagePercent", r1:10, r10:30, timing:{mode:"chance", note:"Requires landing Critical Hits"}},
+      {key:"attackSpeed", r1:0, r10:6, timing:{mode:"chance", note:"Requires landing Critical Hits"}}
+  ], proc:"Crits apply a stacking damage-over-time 'agony' effect. [Data-modeling note: the value shown under Damage Dealt is really a DoT-per-second rate, not an instant damage multiplier — it's filed in the same bucket as flat damage% gems for simplicity, but the two don't behave identically in actual combat.]" },
+  { name:"Ca'arsen's Invigoration", stars:1, mods:[
+      {key:"attackSpeed", r1:5.5, r10:16},
+      {key:"damagePercent", r1:0, r10:2, dmgType:"primary"}
+  ], proc:"Boosts Primary Attack speed." },
+  { name:"Zod Stone", stars:1, mods:[
+      {key:"ultimateDuration", r1:16, r10:48},
+      {key:"damagePercent", r1:0, r10:6, dmgType:"ultimate"}
+  ], proc:"Extends Ultimate skill effect duration. [Data-modeling note: 'Ultimate Duration' is tracked as its own utility stat since a longer Ultimate isn't a clean damage/defense multiplier — treat it as a directional value, not directly comparable to the % stats elsewhere.]" },
+  { name:"Respite Stone", stars:1, mods:[
+      {key:"damageReduction", r1:5.5, r10:16},
+      {key:"blockChance", r1:0, r10:6}
+  ], proc:"Damage reduction scales up the lower your Life is." },
+  { name:"Freedom and Devotion", stars:1, mods:[
+      {key:"summonDuration", r1:8, r10:24},
+      {key:"damagePercent", r1:0, r10:3, dmgType:"summon"}
+  ], proc:"Extends summoned pet/minion duration. [Data-modeling note: 'Summon Duration' is tracked as its own utility stat since it isn't a clean damage/defense multiplier — only relevant to summon-based builds, and not comparable to the % stats elsewhere.]" },
+  { name:"Mocking Laughter", stars:1, mods:[
+      {key:"damageReduction", r1:0, r10:8}
+  ], proc:"Taunts non-Elite enemies hit by your Primary Attack." },
+  { name:"Nightmare Wreath", stars:1, mods:[
+      {key:"damagePercent", r1:0, r10:8, timing:{mode:"chance", note:"Chance-based, triggers on kill"}}
+  ], proc:"Chance on kill to fear nearby enemies." },
+  { name:"Pain of Subjugation", stars:1, mods:[
+      {key:"damagePercent", r1:5.5, r10:16},
+      {key:"damageReduction", r1:0, r10:4}
+  ], proc:"Bonus damage to crowd-controlled enemies." },
+  { name:"The Black Rose", stars:1, mods:[
+      {key:"controlChance", r1:10, r10:24, timing:{mode:"chance", note:"Chance-based, triggers when you're hit"}}
+  ], proc:"Chance to immobilize an attacker when you're hit." },
+  { name:"Defiant Soul", stars:1, mods:[
+      {key:"damageReduction", r1:0, r10:6, timing:{mode:"chance", note:"Triggers on Block (needs Block Chance)"}}
+  ], proc:"Blocking an attack triggers an AoE damage burst around you (requires Block Chance)." },
+  { name:"Power & Command", stars:2, mods:[
+      {key:"damagePercent", r1:8, r10:24, timing:{mode:"alternate", period:9, categories:["primaryDamage","skillDamage"]}}
+  ], proc:"Alternates between boosting Primary Attack damage and skill damage every 9s." },
+  { name:"Fervent Fang", stars:2, mods:[
+      {key:"damageAmp", r1:8, r10:24},
+      {key:"damageToElites", r1:0, r10:6}
+  ], proc:"Repeated hits stack a 'damage taken' debuff on the target." },
+  { name:"Lightning Core", stars:2, mods:[
+      {key:"damagePercent", r1:0, r10:12, timing:{mode:"chance", note:"Requires building a charge via Primary Attacks"}}
+  ], proc:"Builds a charge that unleashes a chain-lightning nova on a fully-charged Primary Attack." },
+  { name:"Bloody Reach", stars:2, mods:[
+      {key:"damagePercent", r1:8, r10:24}
+  ], proc:"Damage increases the farther you are from your target. [Assumes max range is always met — the value shown is the ceiling at 8+ yards; melee or close-range play will see less.]" },
+  { name:"Cutthroat's Grin", stars:2, mods:[
+      {key:"critChance", r1:8, r10:24},
+      {key:"damagePercent", r1:0, r10:4}
+  ], proc:"Bonus Crit Chance when attacking from behind. [Assumes the condition is always met — only actually applies while positioned behind the target, so real uptime depends on your playstyle/class.]" },
+  { name:"Battleguard", stars:2, mods:[
+      {key:"damageReduction", r1:8, r10:24}
+  ], proc:"Reduces melee damage taken from nearby attackers." },
+  { name:"Follower's Burden", stars:2, mods:[
+      {key:"damagePercent", r1:6, r10:18}
+  ], proc:"Damage scales with the number of active summons (max shown). [Assumes max summons are always out — real value is lower with fewer summons active, or 0 for non-summoner builds.]" },
+  { name:"The Hunger", stars:2, mods:[
+      {key:"attackSpeed", r1:0, r10:16, timing:{mode:"chance", note:"Triggers on kill"}}
+  ], proc:"Heals you and boosts Attack Speed briefly on kill." },
+  { name:"Unity Crystal", stars:2, mods:[
+      {key:"damageReduction", r1:2, r10:6},
+      {key:"damagePercent", r1:0, r10:4.8}
+  ], proc:"Group-support gem — bonuses scale with nearby party members. [Assumes ~4 party members nearby (a full raid) — solo play or being spread out gives 0 or a much smaller bonus than shown.]" },
+  { name:"Blood-Soaked Jade", stars:5, mods:[
+      {key:"damagePercent", r1:8, r10:24},
+      {key:"moveSpeed", r1:10, r10:10},
+      {key:"damageReduction", r1:0, r10:8}
+  ], proc:"Widely considered a top-tier gem for nearly any build; damage bonus is highest at full Life." },
+  { name:"Seeping Bile", stars:5, mods:[
+      {key:"damagePercent", r1:25, r10:65, timing:{mode:"chance", note:"Low chance on hit"}}
+  ], proc:"Chance on hit to poison, which spreads to nearby foes on the victim's death; slows enemies at max rank." },
+  { name:"Blessing of the Worthy", stars:5, mods:[
+      {key:"damageReduction", r1:0, r10:16, timing:{mode:"chance", note:"Chance-based, triggers when hit"}},
+      {key:"lifeScaledDamage", r1:12, r10:28, timing:{mode:"chance", note:"Chance-based, triggers when hit"}}
+  ], proc:"20% chance to retaliate with an AoE nuke dealing a % of your current Life as damage when hit — shown as its own 'Life-Scaled Damage' line since it scales off your Life pool, not weapon/skill damage, so it isn't added to the Overall Damage total." },
+  { name:"Phoenix Ashes", stars:5, mods:[], proc:"Prevents a fatal hit once per cooldown and grants a large absorb shield afterward. [Not counted in totals — arguably one of the strongest defensive effects in the game (a death-save), but it has no %-stat equivalent, so it adds 0 to Defense below.]" },
+  { name:"Howler's Call", stars:5, mods:[
+      {key:"controlChance", r1:0, r10:48, timing:{mode:"chance", note:"Chance-based, triggers on Primary Attack"}}
+  ], proc:"Primary Attack has a chance to summon a charging spirit wolf; chance to stun at high rank." },
+  { name:"Zwenson's Haunting", stars:5, mods:[], proc:"Killing an enemy summons a dark beast that AoE damages nearby foes. [Not counted in totals — proc-only, no numeric stat contribution.]" },
+  { name:"Bottled Hope", stars:5, mods:[
+      {key:"damagePercent", r1:8, r10:24, timing:{mode:"chance", note:"Requires using your own buff skill"}},
+      {key:"moveSpeed", r1:8, r10:24, timing:{mode:"chance", note:"Requires using your own buff skill"}},
+      {key:"cooldownReduction", r1:0, r10:6, timing:{mode:"chance", note:"Requires using your own buff skill"}}
+  ], proc:"Using a buff skill also boosts the buffed target's damage and Movement Speed." },
+  { name:"Chip of Stoned Flesh", stars:5, mods:[
+      {key:"damageAmp", r1:0, r10:24, timing:{mode:"chance", note:"Requires fully crowd-controlling an enemy"}}
+  ], proc:"Fully crowd-controlling an enemy applies a curse that explodes for a share of damage dealt during it." },
+  { name:"Echoing Shade", stars:5, mods:[], proc:"Chance to summon a shadow clone that mirrors some of your attacks — very high ceiling, hard to acquire/max. [Not counted in totals — a clone mirroring your attacks could rival a Damage Dealt stat in real impact, but has no clean %-equivalent, so it shows as 0 below.]" },
+  { name:"Frozen Heart", stars:5, mods:[
+      {key:"controlChance", r1:20, r10:60, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Taking damage triggers a large absorb shield and gives your attacks a chance to Chill." },
+  { name:"Blood Floe", stars:5, mods:[
+      {key:"damagePercent", r1:7, r10:20, timing:{mode:"chance", note:"Requires landing a Critical Hit"}},
+      {key:"critDamage", r1:13, r10:40, timing:{mode:"chance", note:"Requires landing a Critical Hit"}},
+      {key:"critChance", r1:5, r10:16, timing:{mode:"chance", note:"Requires landing a Critical Hit"}}
+  ], proc:"Crits trigger a temporary damage/Crit Damage buff and apply Bleed, which stacks bonus Crit Chance from nearby bleeding enemies." },
+  { name:"Concentrated Will", stars:5, mods:[
+      {key:"damagePercent", r1:5, r10:16, timing:{mode:"chance", note:"Requires using a Dash skill"}},
+      {key:"moveSpeed", r1:5, r10:16, timing:{mode:"chance", note:"Requires using a Dash skill"}}
+  ], proc:"Using a Dash skill triggers a holy-light blast." },
+  { name:"Spiteful Blood", stars:5, mods:[
+      {key:"damagePercent", r1:10, r10:30, timing:{mode:"chance", note:"Requires being below 50% Life and taking damage"}}
+  ], proc:"Below 50% Life, taking damage grants a damage buff, a shield, and Primary Attack immunity in PvP." },
+  { name:"Colossus Engine", stars:5, mods:[
+      {key:"damagePercent", r1:17, r10:50, dmgType:"skill", timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Self-buffing grants Colossal Strength (6s, cannot occur more than once every 20s): +50% Skill damage, increased size and Skill range, and immunity to knockback for 4.8s. Per Blizzard's own patch notes and cross-checked community testing, the size increase also passively boosts Movement Speed while active — but no official numeric value for that part has ever been published, so it's called out here rather than added as a guessed number to the Movement Speed total." },
+  { name:"Golden Firmament", stars:5, mods:[
+      {key:"evasion", r1:4, r10:12}
+  ], proc:"Dealing damage triggers repeated wind-blast AoE hits on nearby enemies." },
+  { name:"Stubborn Oracle", stars:2, mods:[
+      {key:"blockChance", r1:16, r10:48, timing:{mode:"cadence", duration:6, cooldown:20}},
+      {key:"ccDurationReduction", r1:3, r10:9, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Being attacked raises a temporary shield that boosts frontal Block Chance and shortens control effects on you." },
+  { name:"Surging Sea", stars:1, mods:[
+      {key:"damagePercent", r1:8, r10:24, dmgType:"skill"},
+      {key:"cooldownReduction", r1:1, r10:2}
+  ], proc:"Using skills stacks a temporary Skill damage buff." },
+  { name:"Hilt of Many Realms", stars:5, mods:[], proc:"Conjures flying swords; using a skill consumes one to rain damage on a random enemy location. [Not counted in totals — proc-only, no numeric stat contribution.]" },
+  { name:"Mourneskull", stars:2, mods:[
+      {key:"damagePercent", r1:6, r10:18}
+  ], proc:"Dealing damage grants an escalating buff and periodically fires homing spirit projectiles." },
+
+  // ---- Added from expanded 5★/2★/1★ research pass (diablo.tv unreachable; sourced via GameStrategyHQ/Wowhead) ----
+  { name:"Fated Trail", stars:5, mods:[
+      {key:"lifeScaledDamage", r1:5, r10:10, timing:{mode:"cadence", duration:6, cooldown:20}},
+      {key:"damageAmp", r1:0, r10:24, timing:{mode:"cadence", duration:6, cooldown:20}},
+      {key:"controlChance", r1:1.5, r10:1.5, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Dealing damage grants Rampant Growth for 6s (cannot recur more than once every 20s): brambles grow beneath enemies you hit, dealing 5%–10% of your Max Life to nearby enemies (once/sec per enemy), Immobilizing on first hit for 1.5s, and shattering armor for a stacking damage-taken debuff (up to 6 stacks, 0%→4% per stack). [Data-modeling note: the 1.5s Immobilize duration is stored as a raw seconds value in the Crowd Control Potency bucket, not a true percentage — same convention used for Faltergrasp.]" },
+  { name:"Gloom Cask", stars:5, mods:[
+      {key:"damageAmp", r1:0, r10:24, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Primary Attack periodically summons 'gloom blades' dealing bonus damage and marking the target to take more Primary Attack damage. [Partial — only the damage-taken debuff is counted below; the blades' own hit damage (30-68% base damage + flat) is proc-only and not added to any total.]" },
+  { name:"Haunt Coil", stars:5, mods:[], stances:{
+      "Offensive Stance": [{key:"damageAmp", r1:15, r10:45, timing:{mode:"cadence", duration:6, cooldown:20}}],
+      "Defensive Stance": [{key:"damageReduction", r1:15, r10:45, timing:{mode:"cadence", duration:6, cooldown:20}}]
+  }, proc:"Dual-mode: Offensive Stance marks enemies to take more damage from you; Defensive Stance instead reduces damage they deal to you by the same amount. Haunted enemies also pulse AoE blasts. Pick a stance in the dropdown that appears once equipped. [Partial — the AoE pulse damage from haunted enemies is proc-only and not added to any total.]" },
+  { name:"Hellbound Desire", stars:5, mods:[
+      {key:"damagePercent", r1:6, r10:18},
+      {key:"moveSpeed", r1:10, r10:10},
+      {key:"damageAmp", r1:7, r10:36}
+  ], proc:"Damaging enemies embeds stacking Soul Shard Fragments that increase damage they take from you (up to 5 stacks)." },
+  { name:"Hellfire Fragment", stars:5, mods:[], proc:"Using a skill conjures homing hellfire blazes that explode on nearby enemies for AoE damage; stacking hits deal bonus damage. [Not counted in totals — proc-only, no numeric stat contribution.]" },
+  { name:"Leviathan Tomb", stars:5, mods:[
+      {key:"damagePercent", r1:13, r10:40, timing:{mode:"cadence", duration:6, cooldown:20}},
+      {key:"damageAmp", r1:4, r10:12}
+  ], proc:"Dealing damage grants a large near-permanent damage buff; Critical Hits boost its effectiveness further. [Partial — the Crit-triggered boost to the buff's own effectiveness (up to 50%) is not modeled; only the base buff and debuff values are counted.]" },
+  { name:"Maw of the Deep", stars:5, mods:[
+      {key:"damageAmp", r1:0, r10:24, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Dealing damage conjures a whirlpool that pulls enemies in, then a sea monster erupts for big AoE damage, knockup, and shreds enemy armor. [Partial — only the armor-shred damage-taken debuff is counted; the eruption's own burst damage and the pull/knockup crowd control are proc-only and add 0 to totals.]" },
+  { name:"Roiling Consequence", stars:5, mods:[
+      {key:"critChance", r1:14, r10:42, timing:{mode:"cadence", duration:6, cooldown:20}},
+      {key:"critChance", r1:4, r10:12}
+  ], proc:"Dealing damage triggers a rage state boosting Crit Chance; Crits Burn nearby enemies, and you crit more vs. already-Burning enemies. [Partial — only the two Crit Chance components are counted; the Burn DoT damage itself is proc-only and adds 0 to totals.]" },
+  { name:"Starfire Shard", stars:5, mods:[], proc:"Chance on hit to rain meteorites that knock back and heavily damage enemies, then scorch the ground with lingering Burn damage. [Not counted in totals — proc-only, no numeric stat contribution.]" },
+  { name:"Stormvault", stars:5, mods:[
+      {key:"controlChance", r1:0, r10:10, timing:{mode:"chance", note:"Requires dealing damage to conjure (20s cooldown, duration varies)"}}
+  ], proc:"Dealing damage conjures a pursuing storm that continuously damages and periodically Slows nearby enemies. [Partial — only the Slow is counted; the storm's own DPS (~24% base damage/sec) is proc-only and adds 0 to totals.]" },
+  { name:"Void Spark", stars:5, mods:[
+      {key:"attackSpeed", r1:0, r10:16, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Dealing damage has a chance to unleash chain lightning across up to 8 enemies and boost your Attack Speed. [Partial — only the Attack Speed buff is counted; the chain-lightning burst damage itself is proc-only and adds 0 to totals.]" },
+  { name:"Wulfheort", stars:5, mods:[
+      {key:"attackSpeed", r1:0, r10:14, timing:{mode:"cadence", duration:3, cooldown:20}}
+  ], proc:"Dealing damage stacks marks on enemies; at 5 stacks they're consumed for a heart-slash nuke that also boosts Attack Speed for you and nearby allies. [Partial — only the Attack Speed buff is counted; the mark-consume nuke itself (up to 95% base damage) is proc-only and adds 0 to totals.]" },
+  { name:"Cold Confidant", stars:2, mods:[], proc:"Dealing damage summons a damaging ice pillar (with its own Life pool) that Chills and damages nearby enemies until destroyed. [Not counted in totals — proc-only, no numeric stat contribution.]" },
+  { name:"Crimson Behelit", stars:2, mods:[
+      {key:"damagePercent", r1:10, r10:30, timing:{mode:"cadence", duration:6, cooldown:20}},
+      {key:"damageReduction", r1:10, r10:30, timing:{mode:"cadence", duration:6, cooldown:60}}
+  ], proc:"Above 50% Life, dealing damage grants a damage buff (Wrath); below 50% Life, taking damage grants a damage-reduction buff (Mercy). Both also Fear nearby enemies." },
+  { name:"Fading Nostrum", stars:2, mods:[
+      {key:"damageReduction", r1:14, r10:42, timing:{mode:"cadence", duration:6, cooldown:20}},
+      {key:"blockChance", r1:4, r10:12, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Taking damage grants a Ward that sharply cuts damage from continuous/DoT effects and boosts Block Chance vs. projectiles." },
+  { name:"Grim Rhythm", stars:2, mods:[
+      {key:"attackSpeed", r1:8, r10:24},
+      {key:"moveSpeed", r1:4, r10:12}
+  ], proc:"Dealing damage stacks a growing Attack Speed buff; at max stacks you also gain a Movement Speed boost." },
+  { name:"Igneous Scorn", stars:2, mods:[
+      {key:"damagePercent", r1:0, r10:10, timing:{mode:"cadence", duration:2, cooldown:6}}
+  ], proc:"Critical Hits cause fiery AoE explosions around you; landing one briefly boosts your damage. [Partial — only the post-explosion damage buff is counted; the explosion's own AoE damage is proc-only and adds 0 to totals.]" },
+  { name:"Ironbane", stars:2, mods:[
+      {key:"damageAmp", r1:5, r10:15, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Channeled skills have a chance to dissolve enemy armor, making the target take more damage and move slower." },
+  { name:"Kir Sling", stars:2, mods:[
+      {key:"damageAmp", r1:0, r10:14, timing:{mode:"cadence", duration:4, cooldown:20}}
+  ], proc:"Being attacked has a chance to Blind nearby enemies (total loss of control); bonus damage to Blinded enemies. [Partial — only the damage-taken debuff is counted; the Blind itself is a strong crowd-control effect (full loss of control) that isn't reflected in the Utility total at all.]" },
+  { name:"Manaflux", stars:2, mods:[], proc:"Builds up Mana over time, then your next skill 'plays a card' — a fireball nuke above 50% Life, or an acid/silence attack below 50% Life. [Not counted in totals — proc-only, no numeric stat contribution.]" },
+  { name:"Mercy's Harvest", stars:2, mods:[
+      {key:"damagePercent", r1:0, r10:12}
+  ], proc:"Damaging a low-Life enemy conjures a reaper that cleaves nearby enemies and stacks a small ongoing damage buff on you. [Partial — only the stacking damage buff is counted; the reaper's own cleave damage is proc-only and adds 0 to totals.]" },
+  { name:"Mossthorn", stars:2, mods:[
+      {key:"damageReduction", r1:0, r10:8, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Taking damage triggers retaliatory thorn strikes back at attackers while you take reduced damage." },
+  { name:"Mother's Lament", stars:2, mods:[
+      {key:"critChance", r1:11, r10:32, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Dealing damage has a chance to grant a large temporary Crit Chance buff; on expiration, releases a blood spike that applies Bleed. [Partial — only the Crit Chance buff is counted; the blood spike hit and Bleed DoT are proc-only and add 0 to totals.]" },
+  { name:"Pain Clasp", stars:2, mods:[
+      {key:"damagePercent", r1:8, r10:24},
+      {key:"moveSpeed", r1:0, r10:6}
+  ], proc:"Deal bonus damage to enemies afflicted with any continuous/DoT effect; move faster near a DoT'd enemy. [Assumes the condition is always met — only applies to enemies you (or allies) have already inflicted a DoT/continuous effect on.]" },
+  { name:"Rampart Torch", stars:2, mods:[
+      {key:"damageReduction", r1:5, r10:15, timing:{mode:"cadence", duration:6, cooldown:20}},
+      {key:"damageReduction", r1:2.7, r10:8, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Being attacked grants a shield-like effect reducing incoming damage and continuous damage for a short time." },
+  { name:"Specter Glass", stars:2, mods:[
+      {key:"damageAmp", r1:10, r10:28, timing:{mode:"cadence", duration:2, cooldown:6}},
+      {key:"critChance", r1:1.3, r10:4, timing:{mode:"cadence", duration:2, cooldown:6}}
+  ], proc:"Critical Hits shatter enemy armor, making them take more damage from you and boosting your Crit Chance against them." },
+  { name:"Tear of the Comet", stars:2, mods:[
+      {key:"damagePercent", r1:0, r10:6, dmgType:"skill"}
+  ], proc:"While Channeling, automatically fires homing arcane missiles at random enemies." },
+  { name:"The Abiding Curse", stars:2, mods:[
+      {key:"controlChance", r1:35, r10:35, timing:{mode:"cadence", duration:7.5, cooldown:20}},
+      {key:"damageAmp", r1:0, r10:10, timing:{mode:"cadence", duration:7.5, cooldown:20}}
+  ], proc:"Attacks have a chance to curse enemies, slowing their Attack/Movement Speed; cursed enemies take bonus damage." },
+  { name:"The Crucible", stars:2, mods:[], proc:"Damaging a low-Life enemy triggers an execute-style hit that deals more damage the lower the target's Life is. [Not counted in totals — proc-only, no numeric stat contribution.]" },
+  { name:"The Jolted Eye", stars:2, mods:[], proc:"Critical Hits call down a lightning blast that Shocks nearby enemies with damage over time. [Not counted in totals — proc-only, no numeric stat contribution.]" },
+  { name:"Tundra Blight", stars:2, mods:[
+      {key:"controlChance", r1:10, r10:30, timing:{mode:"cadence", duration:6, cooldown:20}},
+      {key:"damageReduction", r1:2, r10:6, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Taking damage grants an aura that Chills and slows nearby enemies while reducing the damage they deal." },
+  { name:"Viper's Bite", stars:2, mods:[
+      {key:"controlChance", r1:2, r10:6, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Damaging enemies poisons them with a DoT and slows their Attack Speed. [Data-modeling note: the number shown under Crowd Control Potency is actually the enemy Attack Speed debuff, not a CC chance — it's filed there for lack of a better bucket. The poison DoT damage itself (45% base damage + flat per second) is proc-only and not counted anywhere.]" },
+  { name:"Volatility Shard", stars:2, mods:[
+      {key:"damagePercent", r1:0, r10:8, timing:{mode:"cadence", duration:2, cooldown:6}}
+  ], proc:"Defeating an enemy triggers a small AoE explosion and briefly boosts your own damage. [Partial — only the post-kill damage buff is counted; the explosion's own damage is proc-only and adds 0 to totals.]" },
+  { name:"War Herald", stars:2, mods:[
+      {key:"damagePercent", r1:6, r10:18, timing:{mode:"chance", note:"Requires a cumulative damage threshold; resets on death"}}
+  ], proc:"Dealing or taking a large cumulative amount of damage grants a temporary damage buff; resets on death or leaving combat." },
+  { name:"Blessed Pebble", stars:1, mods:[
+      {key:"moveSpeed", r1:5, r10:8, timing:{mode:"chance", note:"Requires gaining a beneficial effect"}}
+  ], proc:"Extends the duration of beneficial effects (buffs) on you. [Data-modeling note: this gem's actual named effect — extending buff duration — has no %-power equivalent and isn't counted; only the smaller Movement Speed side-effect shown below is captured.]" },
+  { name:"Entropic Well", stars:1, mods:[
+      {key:"damagePercent", r1:6, r10:18, dmgType:"skill"},
+      {key:"attackSpeed", r1:0, r10:4}
+  ], proc:"Passively boosts all Skill damage and Skill Attack Speed." },
+  { name:"Exigent Echo", stars:1, mods:[
+      {key:"blockChance", r1:10, r10:30, timing:{mode:"cadence", duration:6, cooldown:20}}
+  ], proc:"Taking a Critical Hit grants a temporary Block Chance boost and reduces damage taken while blocking." },
+  { name:"Eye of the Unyielding", stars:1, mods:[
+      {key:"damagePercent", r1:6, r10:16},
+      {key:"damageReduction", r1:0, r10:4}
+  ], proc:"Boosts damage from your own continuous/DoT effects while reducing continuous damage taken from enemies. [Assumes the condition is always met — the Damage Dealt line only applies to DoT/continuous skills; if your build has none, its real contribution is 0 despite showing a number below.]" },
+  { name:"Faltergrasp", stars:1, mods:[
+      {key:"controlChance", r1:1.2, r10:3.6, timing:{mode:"cadence", duration:4, cooldown:20}},
+      {key:"controlChance", r1:8, r10:24, timing:{mode:"cadence", duration:4, cooldown:20}}
+  ], proc:"Your hits disable enemies' Dash skills and slow their Movement Speed. [Data-modeling note: the Dash-disable duration is stored in the Crowd Control Potency bucket as a raw seconds value (not a true percentage), since there's no cleaner stat to file it under — treat that number as a rough index, not a literal %.]" },
+  { name:"Flaystone", stars:1, mods:[
+      {key:"damagePercent", r1:9, r10:27}
+  ], proc:"Deal bonus damage specifically to enemies protected by a shield. [Assumes the condition is always met — only applies vs. shielded enemies, a fairly niche subset of monsters/affixes, so real value is often much lower than shown.]" },
+  { name:"Havoc Bearer", stars:1, mods:[
+      {key:"damagePercent", r1:6, r10:18, timing:{mode:"cadence", duration:2, cooldown:6}},
+      {key:"attackSpeed", r1:1.3, r10:4, timing:{mode:"cadence", duration:2, cooldown:6}}
+  ], proc:"Using a Dash skill briefly boosts your damage and Attack Speed." },
+  { name:"Heartstone", stars:1, mods:[
+      {key:"ccDurationReduction", r1:8, r10:24}
+  ], proc:"Extends absorb shield duration; while shielded, also shortens loss-of-control durations on you. [Data-modeling note: the primary named effect — extending shield duration — has no %-power equivalent and isn't counted; only the CC Duration Reduction (conditional on having a shield up) is captured, and is shown as if always active.]" },
+  { name:"Interminus Stone", stars:1, mods:[
+      {key:"damagePercent", r1:5, r10:15},
+      {key:"evasion", r1:0.7, r10:2}
+  ], proc:"Deal more damage while moving; gain a small Evasion boost. [Assumes the condition is always met — only applies while actively moving, so it drops to 0 the moment you plant and channel/cast.]" },
+  { name:"Lo's Focused Gaze", stars:1, mods:[
+      {key:"damagePercent", r1:8, r10:20, dmgType:"skill"}
+  ], proc:"Boosts damage and charge-up speed of Charge-type skills." },
+  { name:"Lucent Watcher", stars:1, mods:[
+      {key:"ccDurationReduction", r1:8, r10:24},
+      {key:"damageReduction", r1:0, r10:4}
+  ], proc:"Reduces how long loss-of-control effects last on you and reduces damage taken while under CC." },
+  { name:"Misery Elixir", stars:1, mods:[
+      {key:"damageAmp", r1:0, r10:2}
+  ], proc:"Extends how long your harmful effects (debuffs/DoTs) last on enemies. [Data-modeling note: this gem's primary named effect — extending debuff/DoT duration — has no %-power equivalent and isn't counted; only a small unrelated Damage Amp side-effect is captured.]" },
+  { name:"Mountain Toe", stars:1, mods:[
+      {key:"critResistance", r1:4, r10:12}
+  ], proc:"Raises resistance to being critically hit and reduces the extra damage taken from enemy Crits." },
+  { name:"Taxman's Pity", stars:1, mods:[], proc:"Critical Hits inflict a healing-reduction debuff on enemies; debuffed enemies deal slightly less damage to you. [Not counted in totals — a real anti-healing tool vs. self-healing Bosses/PvP targets, but has no %-stat equivalent, so it adds 0 below.]" },
+  { name:"Unrefined Passage", stars:1, mods:[
+      {key:"damageReduction", r1:5, r10:15}
+  ], proc:"Reduces damage taken while moving; small chance to resist being Slowed." },
+
+  // ---- Made to Suffer update (Sept 17, 2026) — both released ~1 week before this data was compiled ----
+  { name:"Enigma Latera", stars:5, mods:[
+      {key:"damageAmp", r1:20, r10:36, timing:{mode:"cadence", duration:3, cooldown:9}},
+      {key:"damageReduction", r1:24.5, r10:42, timing:{mode:"cadence", duration:3, cooldown:9}},
+      {key:"magicFind", r1:15, r10:15}
+  ], proc:"Periodically gain Enigma (once every 9s); your next Primary Attack unleashes Cruel Enigma, chaining through up to 6 nearby enemies for 3s. Cruel Enigma increases damage you deal to afflicted enemies by 20%→36% (rank 1→10), and reduces damage they deal to you by a base 3.5%→6% per stack, stacking per beneficial effect they have active (up to 6 stacks, capping at 24.5%→42% total). Additionally siphons up to 0s→3s of one non-Skill beneficial effect from an afflicted player for yourself. [Data-modeling note: the Damage Reduction value entered here is the maximum stacked figure (6 stacks vs. a fully-buffed target); real-world value will be lower against targets with fewer active buffs. The buff-siphon duration isn't a %-stat and isn't counted in totals.] Resonance pairing: Tundra Blight, Fading Nostrum, Stubborn Oracle, Void Spark, Fated Trail." },
+  { name:"Prong Crag", stars:2, mods:[], proc:"While in combat, taking a single hit exceeding 10% of your Max Life grants Resolve for 6s (once every 20s): increased damage done and reduced damage taken from that source, stacking up to 3 times, plus increased Critical Resistance. [Not counted in totals — Blizzard's own patch notes describe this gem qualitatively but publish no percentages yet, so it can't be quantified. Resonance pairing: Faltergrasp, Tundra Blight, Rampart Torch.]" }
+];
+GEMS.sort((a,b)=>a.name.localeCompare(b.name));
+
+const SLOT_GROUPS = [
+  { title:"Helm", slots:[0,1] },
+  { title:"Shoulders", slots:[2,3] },
+  { title:"Chest", slots:[4,5] },
+  { title:"Legs", slots:[6,7] }
+];
+const NUM_SLOTS = 8;
+const slotState = new Array(NUM_SLOTS).fill(null).map(()=>({gem:"", rank:1, stance:null}));
+const slotEls = new Array(NUM_SLOTS); // cached DOM refs per slot, filled by buildUI — avoids repeated getElementById lookups
+let maxLifeValue = 550000; // default clan-average estimate; overridden by the Max Life input
+
+// Cached top-level DOM refs (filled by cacheStaticEls, called once at startup)
+let summaryColsEl, procListEl, archetypeEl, timelineBodyEl, timelineRulerEl;
+function cacheStaticEls(){
+  summaryColsEl = document.getElementById("summaryCols");
+  procListEl = document.getElementById("procList");
+  archetypeEl = document.getElementById("archetype");
+  timelineBodyEl = document.getElementById("timelineBody");
+  timelineRulerEl = document.getElementById("timelineRuler");
+}
+function debounce(fn, wait){
+  let t;
+  return function(...args){
+    clearTimeout(t);
+    t = setTimeout(()=>fn.apply(this,args), wait);
+  };
+}
+
+function interp(r1, r10, rank){
+  return r1 + (r10 - r1) * (rank - 1) / 9;
+}
+function starLabel(stars){ return "★".repeat(stars===5?3:stars) + (stars===5?" (5-star)":""); }
+function starClass(stars){ return "stars-"+stars; }
+function getEffectiveMods(gem, stance){
+  if(gem.stances){
+    return gem.stances[stance] || gem.stances[Object.keys(gem.stances)[0]] || [];
+  }
+  return gem.mods || [];
+}
+
+function buildUI(){
+  const container = document.getElementById("gearGroups");
+  container.innerHTML = "";
+  SLOT_GROUPS.forEach(group=>{
+    const groupDiv = document.createElement("div");
+    groupDiv.className = "gear-group";
+    const title = document.createElement("div");
+    title.className = "gear-title";
+    title.textContent = group.title;
+    groupDiv.appendChild(title);
+
+    group.slots.forEach(slotIndex=>{
+      const slotDiv = document.createElement("div");
+      slotDiv.className = "slot";
+
+      const label = document.createElement("div");
+      label.className = "slot-label";
+      label.textContent = "Socket " + (slotIndex+1);
+      slotDiv.appendChild(label);
+
+      const gemSelect = document.createElement("select");
+      gemSelect.id = "gem-" + slotIndex;
+      let opts = '<option value="">— No Gem —</option>';
+      [1,2,5].forEach(starTier=>{
+        const gemsOfTier = GEMS.filter(g=>g.stars===starTier);
+        if(gemsOfTier.length===0) return;
+        opts += `<optgroup label="${starTier===5?"5-Star Gems":starTier+"-Star Gems"}">`;
+        gemsOfTier.forEach(g=>{
+          opts += `<option value="${g.name}">${g.name}</option>`;
+        });
+        opts += `</optgroup>`;
+      });
+      gemSelect.innerHTML = opts;
+      gemSelect.addEventListener("change", ()=>onSlotChange(slotIndex));
+      slotDiv.appendChild(gemSelect);
+
+      const rankSelect = document.createElement("select");
+      rankSelect.id = "rank-" + slotIndex;
+      let rankOpts = "";
+      for(let r=1;r<=10;r++){ rankOpts += `<option value="${r}">Rank ${r}</option>`; }
+      rankSelect.innerHTML = rankOpts;
+      rankSelect.disabled = true;
+      rankSelect.addEventListener("change", ()=>onSlotChange(slotIndex));
+      slotDiv.appendChild(rankSelect);
+
+      const stanceSelect = document.createElement("select");
+      stanceSelect.id = "stance-" + slotIndex;
+      stanceSelect.style.display = "none";
+      stanceSelect.addEventListener("change", ()=>onSlotChange(slotIndex));
+      slotDiv.appendChild(stanceSelect);
+
+      const descBox = document.createElement("div");
+      descBox.className = "desc-box";
+      descBox.id = "desc-" + slotIndex;
+      descBox.textContent = "Select a gem to see its effect.";
+      slotDiv.appendChild(descBox);
+
+      groupDiv.appendChild(slotDiv);
+
+      slotEls[slotIndex] = { gemSelect, rankSelect, stanceSelect, descBox };
+    });
+
+    container.appendChild(groupDiv);
+  });
+}
+
+function onSlotChange(slotIndex){
+  const { gemSelect, rankSelect, stanceSelect, descBox } = slotEls[slotIndex];
+  const gemName = gemSelect.value;
+  rankSelect.disabled = !gemName;
+  const rank = parseInt(rankSelect.value, 10) || 1;
+  const gem = gemName ? GEMS.find(g=>g.name===gemName) : null;
+
+  let stance = null;
+  if(gem && gem.stances){
+    const stanceKeys = Object.keys(gem.stances);
+    if(stanceSelect.dataset.forGem !== gemName){
+      stanceSelect.innerHTML = stanceKeys.map(k=>`<option value="${k}">${k}</option>`).join("");
+      stanceSelect.dataset.forGem = gemName;
+      stanceSelect.value = stanceKeys[0];
+    }
+    stanceSelect.style.display = "block";
+    stanceSelect.disabled = false;
+    stance = stanceSelect.value || stanceKeys[0];
+  } else {
+    stanceSelect.style.display = "none";
+    stanceSelect.disabled = true;
+    stanceSelect.innerHTML = "";
+    delete stanceSelect.dataset.forGem;
+  }
+
+  slotState[slotIndex] = { gem:gemName, rank:rank, stance:stance };
+
+  if(!gemName){
+    descBox.textContent = "Select a gem to see its effect.";
+  } else {
+    const mods = getEffectiveMods(gem, stance);
+    const parts = mods.map(m=>{
+      const val = interp(m.r1, m.r10, rank);
+      return `${STAT_DEFS[m.key].label}: +${val.toFixed(1)}%`;
+    });
+    let text = `${starLabel(gem.stars)}` + (stance ? ` [${stance}]` : "") + ` — ` + (parts.length ? parts.join(", ") : "Proc-based effect");
+    if(gem.proc) text += ` | ${gem.proc}`;
+    descBox.textContent = text;
+  }
+  recalcSynergy();
+}
+
+function magicFindForStar(stars){
+  if(stars===1) return 5;
+  if(stars===2) return 10;
+  return 15;
+}
+
+// ---------- 60-second timeline ----------
+const TIMELINE_LABELS = {
+  overallDamage:      { label:"Overall Damage",                         group:"offense" },
+  primaryDamage:      { label:"Primary Attack Damage",                  group:"offense" },
+  skillDamage:        { label:"Skill Damage",                           group:"offense" },
+  ultimateDamage:      { label:"Ultimate Damage",                        group:"offense" },
+  summonDamage:        { label:"Summon Damage",                          group:"offense" },
+  lifeScaledDamage:    { label:STAT_DEFS.lifeScaledDamage.label,          group:"offense" },
+  damageAmp:           { label:STAT_DEFS.damageAmp.label,                group:"offense" },
+  critChance:          { label:STAT_DEFS.critChance.label,               group:"offense" },
+  critDamage:          { label:STAT_DEFS.critDamage.label,               group:"offense" },
+  attackSpeed:         { label:STAT_DEFS.attackSpeed.label,              group:"offense" },
+  damageToElites:      { label:STAT_DEFS.damageToElites.label,           group:"offense" },
+  damageReduction:      { label:STAT_DEFS.damageReduction.label,          group:"defense" },
+  damageTakenIncrease:  { label:STAT_DEFS.damageTakenIncrease.label,      group:"defense" },
+  blockChance:          { label:STAT_DEFS.blockChance.label,              group:"defense" },
+  evasion:              { label:STAT_DEFS.evasion.label,                  group:"defense" },
+  ccDurationReduction:  { label:STAT_DEFS.ccDurationReduction.label,      group:"defense" },
+  critResistance:       { label:STAT_DEFS.critResistance.label,           group:"defense" },
+  controlChance:        { label:STAT_DEFS.controlChance.label,            group:"utility" },
+  moveSpeed:            { label:STAT_DEFS.moveSpeed.label,                group:"utility" },
+  resourceEfficiency:   { label:STAT_DEFS.resourceEfficiency.label,       group:"utility" },
+  cooldownReduction:    { label:STAT_DEFS.cooldownReduction.label,        group:"utility" },
+  ultimateDuration:     { label:STAT_DEFS.ultimateDuration.label,         group:"utility" },
+  summonDuration:       { label:STAT_DEFS.summonDuration.label,           group:"utility" },
+  magicFind:            { label:STAT_DEFS.magicFind.label,                group:"utility" }
+};
+
+function timelineCategoryFor(modKey, dmgType){
+  if(modKey === "damagePercent"){
+    if(dmgType === "primary") return "primaryDamage";
+    if(dmgType === "skill") return "skillDamage";
+    if(dmgType === "ultimate") return "ultimateDamage";
+    if(dmgType === "summon") return "summonDamage";
+    return "overallDamage";
+  }
+  return modKey;
+}
+
+function computeSegments(timing){
+  const total = 60;
+  if(!timing || timing.mode === "passive"){
+    return [{ left:0, width:100, chance:false }];
+  }
+  if(timing.mode === "chance"){
+    return [{ left:0, width:100, chance:true }];
+  }
+  if(timing.mode === "cadence"){
+    const segs = [];
+    let start = (timing.offset || 0) % timing.cooldown;
+    if(start < 0) start += timing.cooldown;
+    for(let t = start; t < total; t += timing.cooldown){
+      const segEnd = Math.min(t + timing.duration, total);
+      if(segEnd > t){
+        segs.push({ left: t/total*100, width:(segEnd-t)/total*100, chance:false });
+      }
+    }
+    return segs;
+  }
+  return [{ left:0, width:100, chance:false }];
+}
+
+function buildTimelineEntries(){
+  const entries = [];
+  slotState.forEach(slot=>{
+    if(!slot.gem) return;
+    const gem = GEMS.find(g=>g.name===slot.gem);
+    if(!gem) return;
+    const mods = getEffectiveMods(gem, slot.stance);
+    const stanceNote = (slot.stance && gem.stances) ? slot.stance : null;
+
+    mods.forEach(m=>{
+      const val = interp(m.r1, m.r10, slot.rank);
+      if(val <= 0) return;
+      const timing = m.timing || { mode:"passive" };
+      if(timing.mode === "alternate"){
+        const period = timing.period;
+        entries.push({ category:timing.categories[0], gemName:gem.name, value:val, timing:{mode:"cadence", duration:period, cooldown:period*2, offset:0}, stanceNote });
+        entries.push({ category:timing.categories[1], gemName:gem.name, value:val, timing:{mode:"cadence", duration:period, cooldown:period*2, offset:period}, stanceNote });
+      } else {
+        entries.push({ category:timelineCategoryFor(m.key, m.dmgType), gemName:gem.name, value:val, timing, stanceNote });
+      }
+    });
+
+    if(slot.rank >= 5){
+      entries.push({ category:"magicFind", gemName:gem.name, value:magicFindForStar(gem.stars), timing:{mode:"passive"}, stanceNote:null });
+    }
+  });
+  return entries;
+}
+
+function renderTimelineRuler(){
+  if(timelineRulerEl.childElementCount>0) return; // build once
+  const marks = [0,10,20,30,40,50,60];
+  timelineRulerEl.innerHTML = marks.map(s=>`<span class="ruler-tick" style="left:${s/60*100}%;">${s}s</span>`).join("");
+}
+
+function renderTimeline(){
+  renderTimelineRuler();
+  const entries = buildTimelineEntries();
+  if(entries.length === 0){
+    timelineBodyEl.innerHTML = '<div class="empty-note">Equip gems to see their effect timing across a 60-second window.</div>';
+    return;
+  }
+  const byCat = {};
+  entries.forEach(e=>{
+    (byCat[e.category] = byCat[e.category] || []).push(e);
+  });
+  let html = "";
+  Object.keys(TIMELINE_LABELS).forEach(catKey=>{
+    const list = byCat[catKey];
+    if(!list || list.length === 0) return;
+    const meta = TIMELINE_LABELS[catKey];
+    html += `<div class="timeline-cat"><div class="timeline-cat-title ${meta.group}">${meta.label}</div>`;
+    list.sort((a,b)=>b.value-a.value).forEach(e=>{
+      const segs = computeSegments(e.timing);
+      const segClass = e.timing.mode === "chance" ? "chance" : meta.group;
+      const segsHtml = segs.map(s=>`<div class="timeline-seg ${segClass}" style="left:${s.left}%;width:${s.width}%;"></div>`).join("");
+      const noteAttr = e.timing.note ? ` title="${e.timing.note}"` : (e.timing.mode==="chance" ? ` title="Trigger/RNG-gated — real uptime varies with your build."` : "");
+      const label = e.gemName + (e.stanceNote ? ` (${e.stanceNote})` : "");
+      let valueText = `+${e.value.toFixed(1)}%`;
+      if(catKey === "lifeScaledDamage" && maxLifeValue > 0){
+        valueText += ` (≈${Math.round(e.value/100*maxLifeValue).toLocaleString()})`;
+      }
+      html += `<div class="timeline-row"${noteAttr}><div class="timeline-label">${label}</div><div class="timeline-track">${segsHtml}</div><div class="timeline-value">${valueText}</div></div>`;
+    });
+    html += `</div>`;
+  });
+  timelineBodyEl.innerHTML = html || '<div class="empty-note">No timed effects to show for the current selection.</div>';
+}
+
+function recalcSynergy(){
+  const totals = {};
+  const procEffects = [];
+
+  slotState.forEach(slot=>{
+    if(!slot.gem) return;
+    const gem = GEMS.find(g=>g.name===slot.gem);
+    if(!gem) return;
+    getEffectiveMods(gem, slot.stance).forEach(m=>{
+      const val = interp(m.r1, m.r10, slot.rank);
+      totals[m.key] = (totals[m.key]||0) + val;
+    });
+    if(slot.rank >= 5){
+      const mf = magicFindForStar(gem.stars);
+      totals["magicFind"] = (totals["magicFind"]||0) + mf;
+    }
+    if(gem.proc){
+      procEffects.push({ name: gem.name, rank: slot.rank, text: gem.proc });
+    }
+  });
+
+  // Render stat columns
+  const groups = { offense:[], defense:[], utility:[] };
+  Object.keys(totals).forEach(key=>{
+    const def = STAT_DEFS[key];
+    if(!def) return;
+    groups[def.group].push({ label: def.label, value: totals[key], key: key });
+  });
+
+  const groupTitles = { offense:"Offense", defense:"Defense", utility:"Utility" };
+  let html = "";
+  ["offense","defense","utility"].forEach(g=>{
+    html += `<div class="col ${g}"><h3>${groupTitles[g]}</h3>`;
+    if(groups[g].length===0){
+      html += `<div class="empty-note">No ${groupTitles[g].toLowerCase()} effects equipped yet.</div>`;
+    } else {
+      groups[g].sort((a,b)=>b.value-a.value).forEach(stat=>{
+        let extra = "";
+        if(stat.key === "lifeScaledDamage" && maxLifeValue > 0){
+          const dmg = Math.round(stat.value/100*maxLifeValue);
+          extra = ` <span class="maxlife-abs">(≈${dmg.toLocaleString()} dmg @ ${maxLifeValue.toLocaleString()} Life)</span>`;
+        }
+        html += `<div class="stat-row"><span>${stat.label}</span><span>+${stat.value.toFixed(1)}%${extra}</span></div>`;
+      });
+    }
+    html += `</div>`;
+  });
+  summaryColsEl.innerHTML = html;
+
+  // Proc effects list
+  if(procEffects.length===0){
+    procListEl.innerHTML = "";
+  } else {
+    let pHtml = `<h3 style="color:var(--gold);font-size:0.95em;margin:14px 0 6px 0;">Notable Proc / Situational Effects</h3>`;
+    procEffects.forEach(p=>{
+      pHtml += `<div class="proc-item"><b>${p.name}</b> (Rank ${p.rank}): ${p.text}</div>`;
+    });
+    procListEl.innerHTML = pHtml;
+  }
+
+  // Archetype heuristic (excludes Life-Scaled Damage — different unit than weapon/skill damage%, would distort the estimate)
+  const offenseTotal = groups.offense.reduce((s,x)=> s + (x.label.startsWith("Life-Scaled Damage") ? 0 : x.value), 0);
+  const rawDefense = groups.defense.reduce((s,x)=> s + (x.label.includes("extra risk") ? -x.value : x.value), 0);
+  const utilityTotal = groups.utility.reduce((s,x)=>s+x.value,0);
+  const equippedCount = slotState.filter(s=>s.gem).length;
+
+  if(equippedCount===0){
+    archetypeEl.textContent = "Equip gems to see your build archetype.";
+  } else {
+    let label;
+    if(offenseTotal > rawDefense * 1.8 && offenseTotal > 20){
+      label = "🔥 Glass Cannon — Burst Damage Build";
+    } else if(rawDefense > offenseTotal * 1.3 && rawDefense > 15){
+      label = "🛡 Tank / Survivalist Build";
+    } else if(utilityTotal > offenseTotal && utilityTotal > rawDefense){
+      label = "🌀 Utility / Support-Leaning Build";
+    } else {
+      label = "⚖ Balanced Hybrid Build";
+    }
+    archetypeEl.textContent = `${label}  (Offense ≈ +${offenseTotal.toFixed(1)}% · Defense ≈ +${rawDefense.toFixed(1)}% · Utility ≈ +${utilityTotal.toFixed(1)}%, ${equippedCount}/8 sockets filled)`;
+  }
+
+  renderTimeline();
+}
+
+function resetAll(){
+  for(let i=0;i<NUM_SLOTS;i++){
+    const { gemSelect, rankSelect, stanceSelect, descBox } = slotEls[i];
+    gemSelect.value = "";
+    rankSelect.value = "1";
+    rankSelect.disabled = true;
+    stanceSelect.style.display = "none";
+    stanceSelect.disabled = true;
+    stanceSelect.innerHTML = "";
+    delete stanceSelect.dataset.forGem;
+    descBox.textContent = "Select a gem to see its effect.";
+    slotState[i] = { gem:"", rank:1, stance:null };
+  }
+  recalcSynergy();
+}
+
+// ---------- Init ----------
+cacheStaticEls();
+buildUI();
+document.getElementById("maxLifeInput").addEventListener("input", debounce((e)=>{
+  const v = parseFloat(e.target.value);
+  maxLifeValue = (isNaN(v) || v < 0) ? 0 : v;
+  recalcSynergy();
+}, 200));
+recalcSynergy();
+</script>
+</body>
+</html>
